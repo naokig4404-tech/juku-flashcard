@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>四科のまとめ フラッシュカード</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Meiryo UI', 'メイリオ', sans-serif; background: #F0F2F5; color: #333; min-height: 100vh; }
+
+    header { background: #C00000; color: white; padding: 14px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+    header h1 { font-size: 17px; font-weight: bold; }
+    header p { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+    .tabs { display: flex; background: white; border-bottom: 2px solid #E0E0E0; overflow-x: auto; }
+    .tab { flex: 1; min-width: 70px; padding: 11px 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+    .tab:hover { color: #C00000; background: #FFF5F5; }
+    .tab.active { color: #C00000; border-bottom-color: #C00000; }
+    .tab .cnt { font-size: 10px; background: #EEE; color: #888; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
+    .tab.active .cnt { background: #FFDDDD; color: #C00000; }
+    .tab.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .filter-bar { background: white; border-bottom: 1px solid #E8E8E8; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .filter-info { font-size: 12px; color: #666; }
+    .filter-info strong { color: #C00000; }
+    .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .fbtn { padding: 5px 12px; border: 1.5px solid #CCC; border-radius: 16px; background: white; cursor: pointer; font-size: 11px; font-family: inherit; transition: all 0.2s; }
+    .fbtn.active { background: #C00000; color: white; border-color: #C00000; }
+    .review-banner { background: #FFF3CD; border-left: 3px solid #FFA000; padding: 7px 16px; font-size: 12px; color: #664D03; display: none; }
+    .review-banner.show { display: block; }
+
+    .main { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+    .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .prog-text { font-size: 13px; color: #666; white-space: nowrap; min-width: 50px; }
+    .prog-bar { flex: 1; height: 5px; background: #E0E0E0; border-radius: 3px; overflow: hidden; }
+    .prog-fill { height: 100%; background: #C00000; border-radius: 3px; transition: width 0.4s; }
+    .badges { display: flex; gap: 6px; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .badge-ok { background: #E3F2FD; color: #0060A8; }
+    .badge-ng { background: #FFEBEE; color: #C00000; }
+
+    .section-divider { background: #E8ECF0; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: bold; color: #666; margin-bottom: 10px; text-align: center; }
+
+    /* フリップカード */
+    .scene { width: 100%; perspective: 1200px; margin-bottom: 16px; min-height: 300px; }
+    .card-flip {
+      width: 100%; min-height: 300px; position: relative;
+      transform-style: preserve-3d; transition: transform 0.55s ease; cursor: pointer;
+    }
+    .card-flip.flipped { transform: rotateY(180deg); }
+    .card-front, .card-back {
+      position: absolute; width: 100%; min-height: 300px;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 14px; padding: 24px 22px; box-shadow: 0 3px 16px rgba(0,0,0,0.13);
+      display: flex; flex-direction: column;
+    }
+    .card-front { background: white; }
+    .card-back { background: #0060A8; transform: rotateY(180deg); color: white; }
+
+    .card-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .card-section { font-size: 11px; color: #C00000; font-weight: bold; background: #FFECEC; padding: 3px 9px; border-radius: 10px; }
+    .card-type-badge { font-size: 10px; color: #999; }
+    .review-mark { background: #C00000; color: white; font-size: 10px; padding: 2px 7px; border-radius: 8px; }
+
+    .card-q { font-size: 19px; line-height: 1.75; color: #1A1A1A; flex: 1; display: flex; align-items: center; padding: 4px 0; word-break: break-all; }
+    .blank { display: inline-block; border-bottom: 2.5px solid #C00000; min-width: 64px; background: #FFF0F0; border-radius: 3px; padding: 0 6px; margin: 0 3px; color: transparent; }
+    .card-hint { font-size: 12px; color: #BBB; margin-top: 8px; }
+    .card-tap { font-size: 12px; color: #C00000; text-align: center; margin-top: 14px; opacity: 0.65; }
+
+    .back-q { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.5; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+    .back-answer { font-size: 34px; font-weight: bold; color: white; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; line-height: 1.45; padding: 8px 0; word-break: break-all; }
+    .back-memo { font-size: 13px; color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 12px; margin: 0 0 10px 0; line-height: 1.6; border-left: 3px solid rgba(255,255,255,0.4); }
+    .back-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .btn-ok { flex: 1; padding: 13px; background: white; color: #0060A8; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+    .btn-ok:active { opacity: 0.8; }
+    .btn-ng { flex: 1; padding: 13px; background: #C00000; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+    .btn-ng:active { opacity: 0.8; }
+
+    .nav-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
+    .btn-nav { padding: 10px 18px; background: white; border: 1.5px solid #DDD; border-radius: 8px; cursor: pointer; font-size: 15px; font-family: inherit; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+    .btn-nav:not(:disabled):hover { background: #F5F5F5; }
+    .nav-info { font-size: 13px; color: #888; min-width: 60px; text-align: center; }
+
+    .empty { background: white; border-radius: 14px; padding: 56px 20px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .empty h3 { font-size: 22px; color: #0060A8; margin-bottom: 10px; }
+    .empty p { color: #888; font-size: 14px; margin-bottom: 22px; line-height: 1.6; }
+    .btn-restart { padding: 12px 24px; background: #0060A8; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; margin: 4px; }
+    .btn-restart-r { padding: 12px 24px; background: #C00000; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; margin: 4px; }
+
+    .reset-row { text-align: center; margin-top: 10px; }
+    .btn-reset { background: none; border: 1px solid #CCC; color: #AAA; padding: 6px 14px; border-radius: 16px; font-size: 11px; cursor: pointer; font-family: inherit; }
+
+    @media (max-width: 500px) {
+      .card-q { font-size: 16px; }
+      .back-answer { font-size: 26px; }
+      .main { padding: 10px; }
+    }
+
+    /* ルビ（読み仮名）スタイル */
+    ruby { display: inline; }
+    rt { font-size: 0.55em; line-height: 1; color: #888; }
+    .card-back rt { color: rgba(255,255,255,0.65); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 四科のまとめ フラッシュカード</h1>
+  <p>四谷大塚 ／ タップしてめくる ／ スワイプで前後移動</p>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="filter-bar">
+  <div class="filter-info" id="filterInfo">読み込み中...</div>
+  <div class="filter-btns">
+    <button class="fbtn active" id="fbtnAll" onclick="setMode('all')">全問</button>
+    <button class="fbtn" id="fbtnReview" onclick="setMode('review')">要復習のみ</button>
+  </div>
+</div>
+<div class="filter-bar" id="unitBar" style="padding-top:4px;padding-bottom:4px;">
+  <div class="filter-info" style="font-size:11px;color:#888;white-space:nowrap;">単元：</div>
+  <div class="filter-btns" id="unitBtns"></div>
+</div>
+<div class="review-banner" id="reviewBanner">📌 要復習モード：✗ をつけた問題のみ表示</div>
+
+<div class="main">
+  <div class="progress-row">
+    <div class="prog-text" id="progText">- / -</div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="badges">
+      <span class="badge badge-ok" id="badgeOk">✓ 0</span>
+      <span class="badge badge-ng" id="badgeNg">✗ 0</span>
+    </div>
+  </div>
+
+  <div class="section-divider" id="sectionDivider" style="display:none"></div>
+
+  <div class="scene" id="scene">
+    <div class="card-flip" id="cardFlip" onclick="flipCard()">
+      <div class="card-front">
+        <div class="card-meta">
+          <span class="card-section" id="cfSection"></span>
+          <span class="card-type-badge" id="cfType"></span>
+        </div>
+        <div class="card-q" id="cfQ"></div>
+        <div class="card-hint" id="cfHint"></div>
+        <div class="card-tap">▼ タップして答えを確認</div>
+      </div>
+      <div class="card-back">
+        <div class="back-q" id="cbQ"></div>
+        <div class="back-answer" id="cbAnswer"></div>
+        <div class="back-memo" id="cbMemo" style="display:none;"></div>
+        <div class="back-actions">
+          <button class="btn-ok" onclick="mark('ok',event)">わかった ✓</button>
+          <button class="btn-ng" onclick="mark('ng',event)">要復習 ✗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn-nav" id="btnPrev" onclick="go(-1)">◀ 前へ</button>
+    <span class="nav-info" id="navInfo"></span>
+    <button class="btn-nav" id="btnNext" onclick="go(1)">次へ ▶</button>
+  </div>
+
+  <div class="empty" id="emptyScreen" style="display:none">
+    <h3 id="emptyTitle">🎉 完了！</h3>
+    <p id="emptyMsg"></p>
+    <button class="btn-restart" onclick="restart()">もう一度</button>
+    <button class="btn-restart-r" onclick="setMode('review')">要復習のみ復習</button>
+  </div>
+
+  <div class="reset-row">
+    <button class="btn-reset" onclick="resetSubject()">この科目の記録をリセット</button>
+  </div>
+</div>
+
+<script>
+// ─── カードデータ ────────────────────────────────────────
+const CARDS_DATA = {
+  "社会": [
+    // ─── 川と平野・湖（p.8）穴埋め ───────────────────────
+    {id:"s01",section:"川と平野・湖",type:"穴埋め",
+     question:"日本の川は中央の山地から流れ出るため、長さが＿＿＿。",
+     answer:"短い",
+     memo:"短くて急→「短急（たんきゅう）」！日本の川の2大特徴"},
+    {id:"s02",section:"川と平野・湖",type:"穴埋め",
+     question:"日本の川は中央の山地から流れ出るため、流れが＿＿＿。",
+     answer:"急（激しい）"},
+    {id:"s03",section:"川と平野・湖",type:"穴埋め",
+     question:"春には＿＿＿水によって流量が増える川が、特に日本海側に多い。",
+     answer:"雪どけ（融雪）",
+     memo:"日本海側は冬に大雪→春に雪どけ水で川が増える"},
+    {id:"s04",section:"川と平野・湖",type:"穴埋め",
+     question:"三大急流①　＿＿＿川（山形県）",
+     answer:"最上川",
+     memo:"語呂：「もがみ・山形・三急流」。松尾芭蕉が舟で下った川"},
+    {id:"s05",section:"川と平野・湖",type:"穴埋め",
+     question:"三大急流②　＿＿＿川（山梨県・静岡県）",
+     answer:"富士川",
+     memo:"語呂：「富士山の横を流れる富士川」。山梨→静岡へ"},
+    {id:"s06",section:"川と平野・湖",type:"穴埋め",
+     question:"三大急流③　＿＿＿川（熊本県）",
+     answer:"球磨川",
+     memo:"語呂：「球磨（くま）は熊本」。日本三大急流の一つ"},
+    {id:"s07",section:"川と平野・湖",type:"穴埋め",
+     question:"「坂東太郎」とよばれる川は＿＿＿川。",
+     answer:"利根川",
+     memo:"語呂：「坂東太郎＝利根川」。坂東＝関東地方"},
+    {id:"s08",section:"川と平野・湖",type:"穴埋め",
+     question:"「筑紫次郎」とよばれる川は＿＿＿川。",
+     answer:"筑後川",
+     memo:"語呂：「筑紫次郎＝筑後川」。九州の大河"},
+    {id:"s09",section:"川と平野・湖",type:"穴埋め",
+     question:"「四国三郎」とよばれる川は＿＿＿川。",
+     answer:"吉野川",
+     memo:"語呂：「四国三郎＝吉野川」。四国を東西に横断"},
+    {id:"s10",section:"川と平野・湖",type:"穴埋め",
+     question:"＿＿＿湖は淀川の水源となっている。",
+     answer:"琵琶湖",
+     memo:"語呂：「琵琶湖→淀川→大阪湾。びわこよどがわ！」"},
+    {id:"s11",section:"川と平野・湖",type:"穴埋め",
+     question:"諏訪湖は＿＿＿川の水源となっている。",
+     answer:"天竜川",
+     memo:"語呂：「天竜＝天に向かう龍！」。長野→静岡へ南下"},
+    // ─── 川と平野・湖　要点チェック ──────────────────────
+    {id:"s12",section:"川と平野・湖",type:"要点チェック",
+     question:"日本の川の特色は「長さが A、流れが B」。A・Bにあてはまることばを答えなさい。",
+     answer:"A：短い　B：急"},
+    {id:"s13",section:"川と平野・湖",type:"要点チェック",
+     question:"日本の三大急流の名と、それらの川が流れている都道府県の名をすべて答えなさい。",
+     answer:"最上川（山形県）・富士川（山梨県・静岡県）・球磨川（熊本県）",
+     memo:"語呂：「富士川・球磨川・最上川で三急流。ふきも（富球最）」"},
+    {id:"s14",section:"川と平野・湖",type:"要点チェック",
+     question:"日本一長い川の名を答えなさい。また、この川が流れている平野の名を答えなさい。",
+     answer:"信濃川　越後平野",
+     memo:"語呂：「信濃川は日本一（長さ）」。長野→新潟へ流れる"},
+    {id:"s15",section:"川と平野・湖",type:"要点チェック",
+     question:"「坂東太郎」とよばれる川の名と、この川が流れている日本最大の平野の名を答えなさい。",
+     answer:"利根川　関東平野",
+     memo:"語呂：「関東平野は日本最大。東京がど真ん中」"},
+    {id:"s16",section:"川と平野・湖",type:"要点チェック",
+     question:"オホーツク海に面し、日本で3番目に大きい汽水湖の名を答えなさい。",
+     answer:"サロマ湖（北海道）",
+     memo:"語呂：「サロマ湖は網走(あばしり)の近く。さ＝北海道の『さ』寒い！」"},
+    {id:"s17",section:"川と平野・湖",type:"要点チェック",
+     question:"うなぎの養殖で有名な、静岡県にある汽水湖の名を答えなさい。",
+     answer:"浜名湖",
+     memo:"浜名湖は天竜川河口近く。淡水と海水が混じる汽水湖"},
+    // ─── 海岸線・島と海流（p.10）穴埋め ─────────────────
+    {id:"s18",section:"海岸線・島と海流",type:"穴埋め",
+     question:"青森〜岩手〜宮城のリアス式海岸を＿＿＿海岸という。",
+     answer:"三陸",
+     memo:"語呂：「三陸→リアス式海岸→出入り複雑→漁業に最適」"},
+    {id:"s19",section:"海岸線・島と海流",type:"穴埋め",
+     question:"福井県西部の＿＿＿湾沿岸はリアス式海岸。",
+     answer:"若狭（わかさ）湾",
+     memo:"語呂：「若狭湾（福井）→原発が多い→電力の街」"},
+    {id:"s20",section:"海岸線・島と海流",type:"穴埋め",
+     question:"三重県のリアス式海岸がある半島は＿＿＿半島。",
+     answer:"志摩（半島）"},
+    {id:"s21",section:"海岸線・島と海流",type:"穴埋め",
+     question:"愛媛県のリアス式海岸がある海岸は＿＿＿海岸。",
+     answer:"宇和（うわ）海岸"},
+    {id:"s22",section:"海岸線・島と海流",type:"穴埋め",
+     question:"千葉県にある日本有数の長い砂浜は＿＿＿浜。",
+     answer:"九十九里（浜）",
+     memo:"語呂：「九十九里（くじゅうくり）は百里に1里足りない砂浜」"},
+    {id:"s23",section:"海岸線・島と海流",type:"穴埋め",
+     question:"日本海を流れる暖流は＿＿＿海流。",
+     answer:"対馬（海流）",
+     memo:"語呂：「対馬海流は日本海を流れる暖流。つしま＝対馬（長崎）」"},
+    {id:"s24",section:"海岸線・島と海流",type:"穴埋め",
+     question:"太平洋を北上する日本最大の暖流は＿＿＿（日本海流）。",
+     answer:"黒潮",
+     memo:"語呂：「黒潮は黒くて熱い！太平洋を北上する暖流」"},
+    {id:"s25",section:"海岸線・島と海流",type:"穴埋め",
+     question:"千島列島沿いを南下する寒流は＿＿＿（千島海流）。",
+     answer:"親潮",
+     memo:"語呂：「親潮は親切に魚を育てる。寒流だから栄養豊か」"},
+    // ─── 海岸線・島と海流　要点チェック ─────────────────
+    {id:"s26",section:"海岸線・島と海流",type:"要点チェック",
+     question:"日本海を流れる暖流を何といいますか。",
+     answer:"対馬海流",
+     memo:"語呂：「対馬海流は日本海を流れる暖流。つしま＝対馬（長崎）」"},
+    {id:"s27",section:"海岸線・島と海流",type:"要点チェック",
+     question:"大昔に海面が上昇してできた、出入りの複雑な海岸を何といいますか。",
+     answer:"リアス（式）海岸",
+     memo:"リアス式海岸：山が海に沈んでできた複雑な海岸線"},
+    {id:"s28",section:"海岸線・島と海流",type:"要点チェック",
+     question:"瀬戸内海で面積が最も大きい島の名と、その島が属する都道府県を答えなさい。",
+     answer:"小豆島（しょうどしま）　香川県"},
+    // ─── 日本列島の広がり（p.12）穴埋め ──────────────────
+    {id:"s29",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本の北の端の島（北方領土をふくむ）は＿＿＿島（＿＿＿）。",
+     answer:"択捉（えとろふ）島　北海道",
+     memo:"語呂：「択捉(えとろふ)島→え、とろい？北方領土最大・北の端」"},
+    {id:"s30",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本の南の端の島は＿＿＿島（＿＿＿）。",
+     answer:"沖ノ鳥島　東京都",
+     memo:"語呂：「沖ノ鳥島→沖に飛ぶ鳥→日本最南端」"},
+    {id:"s31",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本の東の端の島は＿＿＿島（＿＿＿）。",
+     answer:"南鳥島　東京都",
+     memo:"語呂：「南鳥島→南の島で一番東→日本最東端」"},
+    {id:"s32",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本の西の端の島は＿＿＿島（＿＿＿県）。",
+     answer:"与那国（よなぐに）島　沖縄県",
+     memo:"語呂：「与那国島→よ、那覇より西！→日本最西端・沖縄県」"},
+    {id:"s33",section:"日本列島の広がり",type:"穴埋め",
+     question:"東経135度は日本の＿＿＿線。この経線は兵庫県の＿＿＿島などを通る。",
+     answer:"標準時子午線　淡路島"},
+    {id:"s34",section:"日本列島の広がり",type:"穴埋め",
+     question:"東経＿＿＿度の経線と北緯＿＿＿度の緯線が、秋田県の村で交わる。",
+     answer:"140度　40度"},
+    {id:"s35",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本の国土面積は北方領土をふくめると約＿＿＿万km²。",
+     answer:"約38万km²"},
+    {id:"s36",section:"日本列島の広がり",type:"穴埋め",
+     question:"水産・地下資源が沿岸国のものと認められる、沿岸から200カイリの水域を＿＿＿という。",
+     answer:"排他的経済水域（EEZ）"},
+    {id:"s37",section:"日本列島の広がり",type:"穴埋め",
+     question:"日本海に位置し、日本と韓国が領有を争う島は＿＿＿島（＿＿＿県）。",
+     answer:"竹島　島根県",
+     memo:"語呂：「竹島→たけ（竹）は韓国料理にも？→日韓で争う島根県」"},
+    {id:"s38",section:"日本列島の広がり",type:"穴埋め",
+     question:"東シナ海に位置し、日本と中国が領有を争う島々は＿＿＿（諸島）。",
+     answer:"尖閣諸島",
+     memo:"語呂：「尖閣＝とがった（尖った）島→中国と争う東シナ海」"},
+    {id:"s39",section:"日本列島の広がり",type:"穴埋め",
+     question:"北方領土の領有をめぐって対立している国は＿＿＿。最も大きい島は＿＿＿島。",
+     answer:"ロシア　択捉（えとろふ）島"},
+    // ─── 日本列島の広がり　要点チェック ──────────────────
+    {id:"s40",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の北の端の島（北方領土をふくめた場合）と都道府県を答えなさい。",
+     answer:"択捉島　北海道"},
+    {id:"s41",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の南の端の島と都道府県を答えなさい。",
+     answer:"沖ノ鳥島　東京都"},
+    {id:"s42",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の東の端の島と都道府県を答えなさい。",
+     answer:"南鳥島　東京都"},
+    {id:"s43",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の西の端の島と都道府県を答えなさい。",
+     answer:"与那国島　沖縄県"},
+    {id:"s44",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の標準時子午線は東経何度ですか。また、その経線が通る瀬戸内海最大の島は？",
+     answer:"東経135度　淡路島"},
+    {id:"s45",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本の国土面積は、北方領土をふくめると約何万km²ですか。",
+     answer:"約38万km²",
+     memo:"語呂：「北海道→でっかいどー！6つの地方に次いで大きい」"},
+    {id:"s46",section:"日本列島の広がり",type:"要点チェック",
+     question:"水産・地下資源が沿岸国のものと認められる水域を何といいますか。沿岸から何カイリですか。",
+     answer:"排他的経済水域（EEZ）　200カイリ",
+     memo:"語呂：「本州は日本で一番大きい島→面積1位」"},
+    {id:"s47",section:"日本列島の広がり",type:"要点チェック",
+     question:"日本海に位置し、日本と韓国が領有を争う島の名と、属する県を答えなさい。",
+     answer:"竹島　島根県"},
+    {id:"s48",section:"日本列島の広がり",type:"要点チェック",
+     question:"東シナ海に位置し、日本と中国が領有を争う島々の名を答えなさい。",
+     answer:"尖閣諸島"},
+    {id:"s49",section:"日本列島の広がり",type:"要点チェック",
+     question:"北方領土をめぐって対立している国と、最大の島の名を答えなさい。",
+     answer:"ロシア　択捉島"},
+    // ─── 日本の気候（p.14）穴埋め ────────────────────────
+    {id:"s50",section:"日本の気候",type:"穴埋め",
+     question:"日本列島のほとんどは、四季の変化のある＿＿＿帯に属している。",
+     answer:"温帯"},
+    {id:"s51",section:"日本の気候",type:"穴埋め",
+     question:"北海道は、冬の寒さがきびしい＿＿＿帯に属している。",
+     answer:"亜寒帯（冷帯）"},
+    {id:"s52",section:"日本の気候",type:"穴埋め",
+     question:"東北地方以南では、＿＿＿（季節風）によって夏の降水量が多い。",
+     answer:"季節風（モンスーン）"},
+    {id:"s53",section:"日本の気候",type:"穴埋め",
+     question:"日本の年平均降水量は＿＿＿〜＿＿＿mmで、世界平均のほぼ2倍。",
+     answer:"1700〜1800mm"},
+    {id:"s54",section:"日本の気候",type:"穴埋め",
+     question:"夏の初め、東北の太平洋側に冷害をもたらす北東からの冷たい風を＿＿＿という。",
+     answer:"やませ"},
+    {id:"s55",section:"日本の気候",type:"穴埋め",
+     question:"冬、日本海側に大雪をもたらす暖流は＿＿＿海流。",
+     answer:"対馬（海流）"},
+    {id:"s56",section:"日本の気候",type:"穴埋め",
+     question:"＿＿＿害：川の水や地下水が不足し、農業に被害が出る。ため池が備えとなる。",
+     answer:"干（ひでり）"},
+    {id:"s57",section:"日本の気候",type:"穴埋め",
+     question:"＿＿＿：強い低気圧によって海面が上昇する現象。台風の通過時などに発生。",
+     answer:"高潮"},
+    // ─── 日本の気候　要点チェック ────────────────────────
+    {id:"s58",section:"日本の気候",type:"要点チェック",
+     question:"夏の初めに1か月以上続く長雨を何といいますか。",
+     answer:"梅雨（つゆ）"},
+    {id:"s59",section:"日本の気候",type:"要点チェック",
+     question:"熱帯で発生し夏〜秋に日本に近づく低気圧を何といいますか。また、通過時に海面が異常に高くなる現象を何といいますか。",
+     answer:"台風　高潮"},
+    {id:"s60",section:"日本の気候",type:"要点チェック",
+     question:"冬に降水量が多い地域の多くは、何という海に面していますか。",
+     answer:"日本海"},
+    {id:"s61",section:"日本の気候",type:"要点チェック",
+     question:"日本列島のほとんどは、世界の気候帯のうち何帯に属しますか（漢字2字）。",
+     answer:"温帯"},
+    {id:"s62",section:"日本の気候",type:"要点チェック",
+     question:"日本の年間の平均降水量はどのくらいですか。",
+     answer:"1700〜1800mm"},
+    {id:"s63",section:"日本の気候",type:"要点チェック",
+     question:"北海道と南西諸島で、夏と冬の気温の差が大きいのはどちらですか。",
+     answer:"北海道"},
+    {id:"s64",section:"日本の気候",type:"要点チェック",
+     question:"夏、太平洋側に多くの雨をもたらす季節風はどちらの方位から吹きますか（八方位）。",
+     answer:"南東"},
+    {id:"s65",section:"日本の気候",type:"要点チェック",
+     question:"夏の初め、東北地方の太平洋側に冷害をもたらす、北東から吹く冷たい風を何といいますか。",
+     answer:"やませ"},
+    {id:"s66",section:"日本の気候",type:"要点チェック",
+     question:"日照りの害の別名を漢字2字で答えなさい。",
+     answer:"干害"},
+    {id:"s67",section:"日本の気候",type:"要点チェック",
+     question:"干害に備えてため池が多い地域の多くは、何という海に面していますか。",
+     answer:"瀬戸内海"},
+    {id:"s68",section:"日本の気候",type:"要点チェック",
+     question:"冬、日本海側に大雪をもたらす原因となる海流の名を答えなさい。",
+     answer:"対馬海流"},
+    // ─── 都道府県と都市（p.16）要点チェック ──────────────
+    {id:"s69",section:"都道府県と都市",type:"要点チェック",
+     question:"東北地方で、県名と県庁所在地名が異なる県の名をすべて答えなさい。",
+     answer:"宮城県（仙台市）・岩手県（盛岡市）"},
+    {id:"s70",section:"都道府県と都市",type:"要点チェック",
+     question:"中部地方で、県名と県庁所在地名が異なる県の県庁所在地名をすべて答えなさい。",
+     answer:"名古屋市（愛知）・津市（三重）・金沢市（石川）・甲府市（山梨）"},
+    {id:"s71",section:"都道府県と都市",type:"要点チェック",
+     question:"中国・四国地方で「松」のつく県庁所在地3つと、その県をすべて答えなさい。",
+     answer:"松江市（島根県）・松山市（愛媛県）・高松市（香川県）"},
+    {id:"s72",section:"都道府県と都市",type:"要点チェック",
+     question:"面積が2番目に大きい都道府県と、最も小さい都道府県を答えなさい。",
+     answer:"岩手県（2番目大）　香川県（最小）"},
+    {id:"s73",section:"都道府県と都市",type:"要点チェック",
+     question:"人口が2番目に多い都道府県と、最も少ない都道府県を答えなさい。",
+     answer:"神奈川県（2番目）　鳥取県（最少）"},
+    {id:"s74",section:"都道府県と都市",type:"要点チェック",
+     question:"百万都市が2つある県の名を答えなさい。（その2つの都市名も答えなさい）",
+     answer:"神奈川県　横浜市・川崎市"},
+    {id:"s75",section:"都道府県と都市",type:"要点チェック",
+     question:"百万都市でありながら、県庁所在地ではない都市の名を答えなさい。",
+     answer:"川崎市"},
+    {id:"s76",section:"都道府県と都市",type:"要点チェック",
+     question:"区があるなど、ほかの都市より強い権限があたえられている都市を何といいますか。",
+     answer:"政令指定都市（指定都市）"},
+    {id:"s77",section:"都道府県と都市",type:"要点チェック",
+     question:"政令指定都市のうち、百万都市でない都市の中で最も東に位置している都市の名を答えなさい。",
+     answer:"さいたま市"},
+    {id:"s78",section:"都道府県と都市",type:"要点チェック",
+     question:"人口が東京に次いで2番目に多い都市の名を答えなさい。",
+     answer:"横浜市"},
+
+    // ── 日本の人口 ──────────────────────────────────────
+    {id:"s79",section:"日本の人口",type:"要点チェック",
+     question:"2024年の日本の総人口は約何億何万人ですか。",
+     answer:"約1億2400万人（世界第12位）",
+     memo:"語呂：「いちにし（1億2400万）」。2005年から減少開始。"},
+    {id:"s80",section:"日本の人口",type:"穴埋め",
+     question:"日本の総人口が減り始めたのは＿＿＿年から。",
+     answer:"2005",
+     memo:"2005年が転換点。以降は人口減少社会へ。"},
+    {id:"s81",section:"日本の人口",type:"要点チェック",
+     question:"2024年、65歳以上の高齢者は全体の何分の1をこえていますか。",
+     answer:"4分の1（約29.3%）",
+     memo:"超高齢社会の目安は21%以上。日本はすでに約30%。"},
+    {id:"s82",section:"日本の人口",type:"穴埋め",
+     question:"農業・林業・水産業は第＿＿＿次産業にふくまれる。",
+     answer:"一（第一次産業）",
+     memo:"一次→土から直接生産。二次→製造・加工。三次→サービス・商業。"},
+    {id:"s83",section:"日本の人口",type:"要点チェック",
+     question:"高齢者とは何歳以上の人のことをいいますか。",
+     answer:"65歳以上"},
+    {id:"s84",section:"日本の人口",type:"要点チェック",
+     question:"高齢者の人口と14歳以下の年少人口では、どちらの方が多いですか。",
+     answer:"高齢者（約29.3% > 11.2%）",
+     memo:"2024年：高齢者29.3%、年少人口11.2%。約2.6倍の差。"},
+    {id:"s85",section:"日本の人口",type:"要点チェック",
+     question:"ある時期に多くの子どもが産まれることをカタカナで何といいますか。",
+     answer:"ベビーブーム",
+     memo:"戦後間もない時期（1947〜49年ごろ）が第一次ベビーブーム。"},
+    {id:"s86",section:"日本の人口",type:"要点チェック",
+     question:"第一次産業にふくまれる産業を3つ答えなさい。",
+     answer:"農業・林業・漁業（水産業）"},
+    {id:"s87",section:"日本の人口",type:"穴埋め",
+     question:"商業やサービス業などは第＿＿＿次産業にふくまれる。",
+     answer:"三（第三次産業）",
+     memo:"現在の日本は第三次産業が人口の約73%を占める。"},
+    {id:"s88",section:"日本の人口",type:"要点チェック",
+     question:"人口が減少し地域のくらしが成り立たなくなる状態を漢字2字で答えなさい。",
+     answer:"過疎",
+     memo:"語呂：「過疎 = 少なすぎ（過ぎて疎ら）」。反対は過密。"},
+    {id:"s89",section:"日本の人口",type:"要点チェック",
+     question:"都市に人口や産業が集中しすぎる現象を漢字2字で答えなさい。",
+     answer:"過密",
+     memo:"語呂：「過密 = 多すぎ（過ぎて密）」。反対は過疎。"},
+
+    // ── 米づくり ─────────────────────────────────────────
+    {id:"s90",section:"米づくり",type:"要点チェック",
+     question:"全国の米の生産量のうち4分の1以上を占めている地方を答えなさい。",
+     answer:"東北地方",
+     memo:"東北地方が全体の約28%を生産。日本の「米どころ」。"},
+    {id:"s91",section:"米づくり",type:"要点チェック",
+     question:"2024年の米の生産量が最も多い都道府県を答えなさい。",
+     answer:"新潟県",
+     memo:"新潟県（越後平野）・北海道・秋田県が上位。コシヒカリが有名。"},
+    {id:"s92",section:"米づくり",type:"要点チェック",
+     question:"北上川の下流域に広がる、ひとめぼれの産地として知られる平野の名を答えなさい。",
+     answer:"宮城平野",
+     memo:"かつてはササニシキの産地。現在はひとめぼれが主流。"},
+    {id:"s93",section:"米づくり",type:"要点チェック",
+     question:"日本海に面し、三大急流の一つ・信濃川が流れる米づくりがさかんな平野の名を答えなさい。",
+     answer:"越後平野",
+     memo:"語呂：「越後（えちご）→新潟→コシヒカリの故郷」。"},
+    {id:"s94",section:"米づくり",type:"要点チェック",
+     question:"日本で最も多く栽培されている稲の品種を答えなさい。",
+     answer:"コシヒカリ",
+     memo:"全体の約33%を占める。新潟産が最も有名。"},
+    {id:"s95",section:"米づくり",type:"要点チェック",
+     question:"田に水を入れ、土をくだいて平らにする作業を何といいますか。",
+     answer:"代かき（しろかき）",
+     memo:"田植え前の準備作業。水を入れてトラクターなどで耕す。"},
+    {id:"s96",section:"米づくり",type:"要点チェック",
+     question:"稲刈りと脱穀を同時に行う農業機械を何といいますか。",
+     answer:"コンバイン",
+     memo:"語呂：「コンバイン = combine（組み合わせる）→刈る＋脱穀を一度に」。"},
+    {id:"s97",section:"米づくり",type:"要点チェック",
+     question:"1970年ごろから稲の作付面積を減らすために行われた政策を漢字2字で答えなさい。",
+     answer:"減反",
+     memo:"日本の米の競争力向上を目的に廃止された（約50年間続いた）。"},
+    {id:"s98",section:"米づくり",type:"要点チェック",
+     question:"減反政策のうち、稲以外の作物を栽培することを漢字2字で答えなさい。",
+     answer:"転作",
+     memo:"大豆・麦・野菜などへの転換を促す政策。"},
+    {id:"s99",section:"米づくり",type:"要点チェック",
+     question:"山の斜面に階段状につくられた田を何といいますか。",
+     answer:"棚田（たなだ）",
+     memo:"急な斜面を段々に切り開いた水田。景観美でも有名。"},
+
+    // ── 畑作と野菜づくり ─────────────────────────────────
+    {id:"s100",section:"畑作と野菜づくり",type:"穴埋め",
+     question:"自給率17%で、うどん・パンの原料になる穀物は＿＿＿。",
+     answer:"小麦",
+     memo:"小麦の輸入相手先：アメリカ・カナダ・オーストラリアの3カ国。"},
+    {id:"s101",section:"畑作と野菜づくり",type:"穴埋め",
+     question:"自給率7%で、おもに油をとるために輸入される穀物は＿＿＿。",
+     answer:"大豆",
+     memo:"大豆→みそ・しょうゆ・とうふ・納豆の原料。油もとれる。"},
+    {id:"s102",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"小麦・大豆ともに生産量が日本一の都道府県を答えなさい。",
+     answer:"北海道",
+     memo:"北海道は小麦69.4%・大豆81.0%を生産（2023年）。"},
+    {id:"s103",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"小麦のおもな輸入相手先を3つ答えなさい。",
+     answer:"アメリカ・カナダ・オーストラリア",
+     memo:"語呂：「ア・カ・オ（アメリカ・カナダ・オーストラリア）」。"},
+    {id:"s104",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"夏、高原のすずしい気候を利用してキャベツなどを栽培する農業を何といいますか。",
+     answer:"高冷地農業",
+     memo:"群馬県・嬬恋村（つまごいむら）のキャベツが代表例。"},
+    {id:"s105",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"暖かい気候とビニールハウスを利用した野菜などの早づくりを何といいますか。",
+     answer:"促成栽培",
+     memo:"語呂：「促成（そくせい）= 早く成長させる」。高知・宮崎が代表。"},
+    {id:"s106",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"促成栽培がさかんな四国地方と九州地方にある県をそれぞれ答えなさい。",
+     answer:"高知県・宮崎県",
+     memo:"高知＝なす・ピーマン、宮崎＝きゅうり・ピーマンが代表的産物。"},
+    {id:"s107",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"大都市の近くで大都市向けに野菜などを栽培する農業を何といいますか。",
+     answer:"近郊農業",
+     memo:"語呂：「近郊（きんこう）= 近くの郊外」。茨城・千葉・埼玉が代表。"},
+    {id:"s108",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"保冷車を使って野菜を新鮮なまま消費地まで運ぶしくみを何といいますか。",
+     answer:"コールドチェーン（コールドシステム）",
+     memo:"冷蔵・冷凍を保ったまま産地→消費地へ。鮮度保持に重要。"},
+
+    // ── 日本の人口（追加分） ──────────────────────────────
+    {id:"s109",section:"日本の人口",type:"穴埋め",
+     question:"15〜64歳の生産年齢人口は、ここ10年あまり＿＿＿し続けている。",
+     answer:"減少",
+     memo:"戦後間もない第一次ベビーブームに生まれた人々が高齢者になったことが主因。"},
+    {id:"s110",section:"日本の人口",type:"要点チェック",
+     question:"産業別人口グラフで、1970年に19.3%・2024年に2.9%と減少した産業（グラフのC）は何次産業ですか。",
+     answer:"第一次産業",
+     memo:"農林水産業の就業者割合が急減。現在は全体の約3%以下。"},
+    {id:"s111",section:"日本の人口",type:"要点チェック",
+     question:"産業別人口グラフで、1970年に46.6%・2024年に72.9%と最も大きな割合を占める産業（グラフのE）は何次産業ですか。",
+     answer:"第三次産業",
+     memo:"商業・サービス業・金融など。日本の就業者の約73%が第三次産業。"},
+
+    // ── 米づくり（追加分） ────────────────────────────────
+    {id:"s112",section:"米づくり",type:"要点チェック",
+     question:"最上川の流域に広がる、米の産地として知られる山形県の平野の名を答えなさい。",
+     answer:"庄内平野",
+     memo:"語呂：「しょうない（庄内）→山形→最上川が流れる」。"},
+    {id:"s113",section:"米づくり",type:"要点チェック",
+     question:"減反政策のうち、稲も他の作物も栽培せずに畑を休ませることを何といいますか。",
+     answer:"休耕",
+     memo:"転作（他の作物を栽培）と休耕（何も作らない）がある。"},
+    {id:"s114",section:"米づくり",type:"要点チェック",
+     question:"日本が米を多く輸入している相手先の一つで、東南アジアにある国の名を答えなさい。",
+     answer:"タイ",
+     memo:"タイ米（インディカ種）が代表的。ジャポニカ種の日本米とは品種が異なる。"},
+    {id:"s115",section:"米づくり",type:"穴埋め",
+     question:"1999年から、＿＿＿を納めれば輸入量に制限なく米を輸入できるようになった。",
+     answer:"関税",
+     memo:"ミニマムアクセス（最低輸入量）の制度とあわせて覚えておくとよい。"},
+
+    // ── 畑作と野菜づくり（追加分） ───────────────────────
+    {id:"s116",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"大豆はおもに何をとるために輸入・利用されていますか。",
+     answer:"油（食用油）",
+     memo:"大豆油はサラダ油などに使われる。残りかすは飼料や食品に利用。"},
+    {id:"s117",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"大豆を原料とする食料品を3つ以上答えなさい。",
+     answer:"みそ・しょうゆ・とうふ・納豆（豆腐、豆乳など）",
+     memo:"語呂：「み・しょう・と・な（みそ・しょうゆ・とうふ・納豆）」。"},
+    {id:"s118",section:"畑作と野菜づくり",type:"穴埋め",
+     question:"多くが飼料として使われ、アメリカなどから輸入される穀物は＿＿＿。",
+     answer:"とうもろこし",
+     memo:"自給率は0%近く。牛・豚・鶏の飼料や食品原料として利用される。"},
+    {id:"s119",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"さつまいもの生産量が最も多い都道府県を答えなさい。",
+     answer:"鹿児島県",
+     memo:"語呂：「さつまいも＝薩摩（さつま）＝鹿児島」。宮崎県も上位。"},
+    {id:"s120",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"高冷地農業で特にキャベツの生産が多いことで知られる、群馬県の村の名を答えなさい。",
+     answer:"嬬恋村（つまごいむら）",
+     memo:"浅間山の北に位置。夏でも涼しい高原でキャベツを大量生産。"},
+    {id:"s121",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"野菜の生産額が北海道に次いで多い、関東地方にある都県の名を答えなさい。",
+     answer:"茨城県",
+     memo:"はくさい・ほうれんそう・ねぎなどの産地。大消費地・東京に近い。"},
+    {id:"s122",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"野菜の輸入額が最も多い相手先の国の名を答えなさい。",
+     answer:"中国",
+     memo:"ねぎ・ごぼう・しいたけなどが中国から多く輸入される。"},
+    {id:"s123",section:"畑作と野菜づくり",type:"要点チェック",
+     question:"はくさいの生産量が茨城県に次いで2番目に多い県（グラフのC）を答えなさい。",
+     answer:"長野県",
+     memo:"長野県は高冷地農業もさかん。はくさい・レタス・キャベツが主要産品。"},
+
+  ],
+  "国語": [],
+  "算数": [],
+  "理科": []
+};
+
+// ─── アプリ状態 ───────────────────────────────────────
+const SUBJECTS = ["社会","国語","算数","理科"];
+const LS_KEY = "flashcard_v3";
+let sub="社会", mode="all", unit=0, idx=0, filtered=[], flipped=false, touchX=0;
+
+function loadSt(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{};}catch{return{};} }
+function saveSt(s){ localStorage.setItem(LS_KEY,JSON.stringify(s)); }
+function getSt(id){ return (loadSt()[sub]||{})[id]||"none"; }
+function setSt(id,v){ const s=loadSt(); if(!s[sub])s[sub]={}; s[sub][id]=v; saveSt(s); }
+
+// ─── 読み仮名辞書（長い語から順に並べること） ─────────────
+const FURIGANA = [
+  // 川・平野・湖
+  ["最上川","もがみがわ"],["富士川","ふじかわ"],["球磨川","くまがわ"],
+  ["利根川","とねがわ"],["信濃川","しなのがわ"],["筑後川","ちくごがわ"],
+  ["吉野川","よしのがわ"],["天竜川","てんりゅうがわ"],["淀川","よどがわ"],
+  ["北上川","きたかみがわ"],["四万十川","しまんとがわ"],["石狩川","いしかりがわ"],
+  ["十勝川","とかちがわ"],["天塩川","てしおがわ"],["阿武隈川","あぶくまがわ"],
+  ["琵琶湖","びわこ"],["諏訪湖","すわこ"],["浜名湖","はまなこ"],
+  ["猪苗代湖","いなわしろこ"],["霞ヶ浦","かすみがうら"],["十和田湖","とわだこ"],
+  ["田沢湖","たざわこ"],
+  // 平野・盆地
+  ["越後平野","えちごへいや"],["宮城平野","みやぎへいや"],["関東平野","かんとうへいや"],
+  ["濃尾平野","のうびへいや"],["大阪平野","おおさかへいや"],["仙台平野","せんだいへいや"],
+  ["石狩平野","いしかりへいや"],["十勝平野","とかちへいや"],["庄内平野","しょうないへいや"],
+  ["甲府盆地","こうふぼんち"],["長野盆地","ながのぼんち"],["山形盆地","やまがたぼんち"],
+  // 海岸・半島・湾
+  ["三陸海岸","さんりくかいがん"],["志摩半島","しまはんとう"],["紀伊半島","きいはんとう"],
+  ["能登半島","のとはんとう"],["若狭湾","わかさわん"],["宇和海","うわかい"],
+  ["九十九里浜","くじゅうくりはま"],["鳥取砂丘","とっとりさきゅう"],
+  // 海流
+  ["対馬海流","つしまかいりゅう"],["黒潮","くろしお"],["親潮","おやしお"],
+  ["千島海流","ちしまかいりゅう"],["日本海流","にほんかいりゅう"],
+  // 島・領土
+  ["択捉島","えとろふとう"],["国後島","くなしりとう"],["色丹島","しこたんとう"],
+  ["歯舞群島","はぼまいぐんとう"],["北方領土","ほっぽうりょうど"],
+  ["尖閣諸島","せんかくしょとう"],["隠岐諸島","おきしょとう"],
+  ["与那国島","よなぐにじま"],["沖ノ鳥島","おきのとりしま"],["南鳥島","みなみとりしま"],
+  ["淡路島","あわじしま"],["小豆島","しょうどしま"],["佐渡島","さどがしま"],
+  ["竹島","たけしま"],["対馬","つしま"],["屋久島","やくしま"],["種子島","たねがしま"],
+  // 都市
+  ["盛岡市","もりおかし"],["仙台市","せんだいし"],["名古屋市","なごやし"],
+  ["横浜市","よこはまし"],["川崎市","かわさきし"],["松江市","まつえし"],
+  ["松山市","まつやまし"],["高松市","たかまつし"],["甲府市","こうふし"],
+  ["金沢市","かなざわし"],["さいたま市","さいたまし"],
+  // 都道府県
+  ["神奈川県","かながわけん"],["島根県","しまねけん"],["愛媛県","えひめけん"],
+  ["香川県","かがわけん"],["岩手県","いわてけん"],["鳥取県","とっとりけん"],
+  ["沖縄県","おきなわけん"],["長崎県","ながさきけん"],
+  // 農業・産業
+  ["嬬恋村","つまごいむら"],["促成栽培","そくせいさいばい"],["近郊農業","きんこうのうぎょう"],
+  ["高冷地農業","こうれいちのうぎょう"],["コールドチェーン","こーるどちぇーん"],
+  ["棚田","たなだ"],["減反","げんたん"],["転作","てんさく"],
+  ["過疎","かそ"],["過密","かみつ"],["高齢者","こうれいしゃ"],
+  // 難語彙
+  ["排他的経済水域","はいたてきけいざいすいいき"],["政令指定都市","せいれいしていとし"],
+  ["標準時子午線","ひょうじゅんじしごせん"],["汽水湖","きすいこ"],
+  ["亜寒帯","あかんたい"],["温帯","おんたい"],["季節風","きせつふう"],
+  ["梅雨","つゆ"],["高潮","たかしお"],["干害","かんがい"],
+  ["リアス式海岸","りあすしきかいがん"],["三大急流","さんだいきゅうりゅう"],
+  ["坂東太郎","ばんどうたろう"],["筑紫次郎","つくしじろう"],["四国三郎","しこくさぶろう"],
+  ["越後","えちご"],["濃尾","のうび"],["庄内","しょうない"],
+  ["盆地","ぼんち"],["平野","へいや"],["半島","はんとう"],
+  ["水源","すいげん"],["海岸","かいがん"],["暖流","だんりゅう"],["寒流","かんりゅう"],
+  ["養殖","ようしょく"],["領有","りょうゆう"],["経線","けいせん"],["緯線","いせん"],
+  ["降水量","こうすいりょう"],["冷害","れいがい"],["被害","ひがい"],
+  ["都道府県","とどうふけん"],["県庁所在地","けんちょうしょざいち"],
+  ["面積","めんせき"],["人口","じんこう"],["四季","しき"],
+];
+
+function applyFurigana(text) {
+  if (!text) return text;
+  // HTMLエスケープ済みの文字列を受け取るのではなく、プレーンテキストに適用する
+  // 長い語から順にrubyに変換（FURIGANA配列は長い語が先頭）
+  let result = text;
+  FURIGANA.forEach(([word, reading]) => {
+    // すでにrubyタグの中にある語は変換しない
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    result = result.replace(regex, `<ruby>${word}<rt>${reading}</rt></ruby>`);
+  });
+  return result;
+}
+
+function init(){
+  const tabs=document.getElementById("tabs"); tabs.innerHTML="";
+  SUBJECTS.forEach((s,i)=>{
+    const n=(CARDS_DATA[s]||[]).length;
+    const t=document.createElement("button");
+    t.className="tab"+(i===0?" active":"")+(n===0?" disabled":"");
+    t.id="tab_"+s;
+    t.innerHTML=s+`<span class="cnt">${n}</span>`;
+    if(n>0) t.onclick=()=>selectSub(s);
+    tabs.appendChild(t);
+  });
+  selectSub("社会");
+}
+
+function selectSub(s){
+  sub=s; mode="all"; unit=0; idx=0; flipped=false;
+  SUBJECTS.forEach(x=>{
+    const t=document.getElementById("tab_"+x);
+    if(t) t.className="tab"+(x===s?" active":"")+((CARDS_DATA[x]||[]).length===0?" disabled":"");
+  });
+  document.getElementById("fbtnAll").className="fbtn active";
+  document.getElementById("fbtnReview").className="fbtn";
+  document.getElementById("reviewBanner").className="review-banner";
+  buildFiltered(); buildUnitButtons(); render();
+}
+
+function setMode(m){
+  mode=m; idx=0; flipped=false;
+  document.getElementById("fbtnAll").className="fbtn"+(m==="all"?" active":"");
+  document.getElementById("fbtnReview").className="fbtn"+(m==="review"?" active":"");
+  document.getElementById("reviewBanner").className="review-banner"+(m==="review"?" show":"");
+  buildFiltered(); render();
+}
+
+function buildFiltered(){
+  const all=CARDS_DATA[sub]||[];
+  let cards=unit>0 ? all.filter((_,i)=>Math.floor(i/30)+1===unit) : all;
+  filtered=mode==="review" ? cards.filter(c=>getSt(c.id)==="ng") : [...cards];
+}
+
+function buildUnitButtons(){
+  const all=CARDS_DATA[sub]||[];
+  const total=Math.ceil(all.length/30);
+  let html=`<button class="fbtn${unit===0?' active':''}" onclick="setUnit(0)">全単元</button>`;
+  for(let u=1;u<=total;u++){
+    html+=`<button class="fbtn${unit===u?' active':''}" onclick="setUnit(${u})">第${u}単元</button>`;
+  }
+  document.getElementById("unitBtns").innerHTML=html;
+}
+
+function setUnit(u){
+  unit=u; idx=0; flipped=false;
+  buildFiltered(); buildUnitButtons(); render();
+}
+
+function updateBadges(){
+  const all=CARDS_DATA[sub]||[];
+  let ok=0,ng=0;
+  all.forEach(c=>{const s=getSt(c.id);if(s==="ok")ok++;if(s==="ng")ng++;});
+  document.getElementById("badgeOk").textContent="✓ "+ok;
+  document.getElementById("badgeNg").textContent="✗ "+ng;
+  const unitInfo=unit>0?`　第${unit}単元（${filtered.length}問）`:`　全${all.length}問`;
+  document.getElementById("filterInfo").innerHTML=`<strong>${sub}</strong>${unitInfo}`;
+}
+
+function render(){
+  updateBadges();
+  const cf=document.getElementById("cardFlip");
+  cf.classList.remove("flipped"); flipped=false;
+  const total=filtered.length;
+
+  if(total===0){
+    document.getElementById("scene").style.display="none";
+    document.getElementById("emptyScreen").style.display="block";
+    document.getElementById("emptyTitle").textContent=mode==="review"?"🎉 要復習なし！":"カードがありません";
+    document.getElementById("emptyMsg").textContent=mode==="review"?"すべて「わかった」です！":"";
+    document.getElementById("progText").textContent="0 / 0";
+    document.getElementById("progFill").style.width="0%";
+    document.getElementById("navInfo").textContent="";
+    document.getElementById("btnPrev").disabled=true;
+    document.getElementById("btnNext").disabled=true;
+    return;
+  }
+  document.getElementById("scene").style.display="block";
+  document.getElementById("emptyScreen").style.display="none";
+
+  const i=Math.min(idx,total-1); idx=i;
+  const card=filtered[i];
+  const st=getSt(card.id);
+
+  document.getElementById("progText").textContent=(i+1)+" / "+total;
+  document.getElementById("progFill").style.width=(((i+1)/total)*100).toFixed(0)+"%";
+  document.getElementById("navInfo").textContent=(i+1)+" / "+total;
+
+  // 30枚ごとに単元番号を計算
+  const allCards = CARDS_DATA[sub] || [];
+  const globalIdx = allCards.findIndex(c => c.id === card.id);
+  const unitNum = Math.floor(globalIdx / 30) + 1;
+  const unitLabel = `第${unitNum}単元`;
+
+  // セクション区切り（単元が変わるタイミングで表示）
+  const sd=document.getElementById("sectionDivider");
+  const prevGlobalIdx = i > 0 ? allCards.findIndex(c => c.id === filtered[i-1].id) : -1;
+  const prevUnitNum = prevGlobalIdx >= 0 ? Math.floor(prevGlobalIdx / 30) + 1 : -1;
+  if(i===0 || unitNum !== prevUnitNum){
+    sd.innerHTML="📖 " + unitLabel + `<span style="font-size:10px;color:#999;margin-left:8px;">${card.section}</span>`;
+    sd.style.display="block";
+  } else { sd.style.display="none"; }
+
+  // 前面：単元番号 + セクション名
+  document.getElementById("cfSection").textContent=unitLabel;
+  // タイプバッジ
+  let typeBadge = "";
+  if (st==="ng") {
+    typeBadge = '<span class="review-mark">要復習</span>';
+  } else if (card.type==="要点チェック") {
+    typeBadge = "✅ 要点チェック";
+  } else {
+    typeBadge = "📝 穴埋め";
+  }
+  document.getElementById("cfType").innerHTML = typeBadge;
+  document.getElementById("cfQ").innerHTML=applyFurigana(card.question.replace(/＿＿＿/g,'<span class="blank">＿＿</span>'));
+  document.getElementById("cfHint").textContent=card.hint||"";
+
+  // 裏面
+  document.getElementById("cbQ").innerHTML=applyFurigana(card.question.replace(/＿＿＿/g,"___"));
+  document.getElementById("cbAnswer").innerHTML=applyFurigana(card.answer);
+
+  cf.style.outline=st==="ng"?"3px solid #C00000":"none";
+  document.getElementById("btnPrev").disabled=i===0;
+  document.getElementById("btnNext").disabled=i===total-1;
+
+  // memo表示
+  const memoEl = document.getElementById("cbMemo");
+  if (card.memo) { memoEl.textContent = "💡 " + card.memo; memoEl.style.display = "block"; }
+  else { memoEl.style.display = "none"; }
+}
+
+function flipCard(){
+  const cf=document.getElementById("cardFlip");
+  flipped=!flipped;
+  cf.classList.toggle("flipped",flipped);
+}
+
+function mark(status,e){
+  e.stopPropagation();
+  if(filtered.length===0) return;
+  setSt(filtered[idx].id,status);
+  if(idx<filtered.length-1){
+    idx++;
+    if(mode==="review"&&status==="ok"){
+      buildFiltered();
+      if(filtered.length===0){render();return;}
+      idx=Math.min(idx,filtered.length-1);
+    }
+  } else {
+    if(mode==="review") buildFiltered();
+    if(filtered.length===0||idx>=filtered.length){ showDone(); return; }
+  }
+  render();
+}
+
+function showDone(){
+  const all=CARDS_DATA[sub]||[];
+  let ok=0,ng=0;
+  all.forEach(c=>{const s=getSt(c.id);if(s==="ok")ok++;if(s==="ng")ng++;});
+  document.getElementById("scene").style.display="none";
+  document.getElementById("emptyScreen").style.display="block";
+  document.getElementById("emptyTitle").textContent="🎉 完了！";
+  document.getElementById("emptyMsg").textContent=ok+"問 わかった ／ "+ng+"問 要復習";
+  document.getElementById("progFill").style.width="100%";
+}
+
+function go(d){
+  const n=idx+d;
+  if(n<0||n>=filtered.length) return;
+  idx=n; render();
+}
+function restart(){
+  idx=0; mode="all"; unit=0;
+  document.getElementById("fbtnAll").className="fbtn active";
+  document.getElementById("fbtnReview").className="fbtn";
+  document.getElementById("reviewBanner").className="review-banner";
+  buildFiltered(); buildUnitButtons(); render();
+}
+function resetSubject(){
+  if(!confirm("「"+sub+"」の記録をリセットしますか？")) return;
+  const s=loadSt(); delete s[sub]; saveSt(s);
+  buildFiltered(); render();
+}
+
+// スワイプ（左右で前後移動）
+document.getElementById("scene").addEventListener("touchstart",e=>{touchX=e.touches[0].clientX;},{passive:true});
+document.getElementById("scene").addEventListener("touchend",e=>{
+  const d=touchX-e.changedTouches[0].clientX;
+  if(Math.abs(d)>60&&!flipped) go(d>0?1:-1);
+},{passive:true});
+
+// キーボード
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft") go(-1);
+  else if(e.key==="ArrowRight") go(1);
+  else if(e.key===" "||e.key==="Enter"){ e.preventDefault(); flipCard(); }
+});
+
+init();
+</script>
+</body>
+</html>
