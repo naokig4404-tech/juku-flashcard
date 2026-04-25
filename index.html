@@ -170,6 +170,8 @@
   <div class="empty" id="emptyScreen" style="display:none">
     <h3 id="emptyTitle">🎉 完了！</h3>
     <p id="emptyMsg"></p>
+    <img id="stampImg" src="" alt="スタンプ" style="display:none; max-width:260px; width:80%; margin:18px auto 6px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+    <br>
     <button class="btn-restart" onclick="restart()">もう一度</button>
     <button class="btn-restart-r" onclick="setMode('review')">要復習のみ復習</button>
   </div>
@@ -1135,6 +1137,7 @@ function render(){
     document.getElementById("navInfo").textContent="";
     document.getElementById("btnPrev").disabled=true;
     document.getElementById("btnNext").disabled=true;
+    document.getElementById("stampImg").style.display="none";
     return;
   }
   document.getElementById("scene").style.display="block";
@@ -1210,8 +1213,12 @@ function mark(status,e){
       idx=Math.min(idx,filtered.length-1);
     }
   } else {
-    if(mode==="review") buildFiltered();
-    if(filtered.length===0||idx>=filtered.length){ showDone(); return; }
+    if(mode==="review"){
+      buildFiltered();
+      if(filtered.length===0||idx>=filtered.length){ showDone(); return; }
+    } else {
+      showDone(); return;
+    }
   }
   render();
 }
@@ -1225,6 +1232,12 @@ function showDone(){
   document.getElementById("emptyTitle").textContent="🎉 完了！";
   document.getElementById("emptyMsg").textContent=ok+"問 わかった ／ "+ng+"問 要復習";
   document.getElementById("progFill").style.width="100%";
+
+  // スタンプ判定：filteredの全問がokなら「よくがんばったね」、1問でもng/未回答なら「もっと頑張ろう」
+  const allOk = filtered.length > 0 && filtered.every(c => getSt(c.id) === "ok");
+  const stampImg = document.getElementById("stampImg");
+  stampImg.src = allOk ? "スタンプ/よくがんばったね.jpg" : "スタンプ/もっと頑張ろう.jpg";
+  stampImg.style.display = "block";
 }
 
 function go(d){
@@ -1237,6 +1250,7 @@ function restart(){
   document.getElementById("fbtnAll").className="fbtn active";
   document.getElementById("fbtnReview").className="fbtn";
   document.getElementById("reviewBanner").className="review-banner";
+  document.getElementById("stampImg").style.display="none";
   buildFiltered(); buildUnitButtons(); render();
 }
 function resetSubject(){
