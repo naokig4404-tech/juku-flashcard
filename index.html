@@ -1236,7 +1236,7 @@ function showDone(){
   // スタンプ判定：filteredの全問がokなら「よくがんばったね」、1問でもng/未回答なら「もっと頑張ろう」
   const allOk = filtered.length > 0 && filtered.every(c => getSt(c.id) === "ok");
   const stampImg = document.getElementById("stampImg");
-  stampImg.src = allOk ? "スタンプ/よくがんばったね.jpg" : "スタンプ/もっと頑張ろう.jpg";
+  stampImg.src = allOk ? "stamp/stamp_good.jpg" : "stamp/stamp_try.jpg";
   stampImg.style.display = "block";
 }
 
