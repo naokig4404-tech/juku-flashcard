@@ -105,7 +105,7 @@
 
     /* 理科：部位イラスト表示 */
     .card-img { width: 100%; max-height: 210px; object-fit: contain; border-radius: 8px; margin: 6px 0 8px; background: #f8f8f8; display: block; }
-    .back-answer.small { font-size: 17px; font-weight: bold; line-height: 2.0; text-align: left; padding: 4px 2px; align-items: flex-start; }
+    .back-answer.small { font-size: 18px; font-weight: bold; line-height: 2.2; text-align: left; padding: 4px 2px; display: block; }
   </style>
 </head>
 <body>
@@ -1299,8 +1299,8 @@ function render(){
   document.getElementById("cbQ").innerHTML=applyFurigana(card.question.replace(/＿＿＿/g,"___"));
   const cbAns=document.getElementById("cbAnswer");
   if(card.type==="部位"){
-    // 　（全角スペース）区切りを1行ずつ表示
-    const lines=card.answer.split(/　+/).map(s=>applyFurigana(s.trim())).filter(s=>s);
+    // 　（全角スペース）区切りを1行ずつ表示（ルビなし：答えに読みが書いてあるため）
+    const lines=card.answer.split(/　+/).map(s=>s.trim()).filter(s=>s);
     cbAns.innerHTML=lines.join("<br>");
     cbAns.className="back-answer small";
   } else {
