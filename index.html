@@ -1741,15 +1741,21 @@ const FURIGANA = [
 
 function applyFurigana(text) {
   if (!text) return text;
-  // HTMLエスケープ済みの文字列を受け取るのではなく、プレーンテキストに適用する
-  // 長い語から順にrubyに変換（FURIGANA配列は長い語が先頭）
-  let result = text;
-  FURIGANA.forEach(([word, reading]) => {
-    // すでにrubyタグの中にある語は変換しない
-    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-    result = result.replace(regex, `<ruby>${word}<rt>${reading}</rt></ruby>`);
+  // 変換済みのrubyタグをプレースホルダーに退避し二重変換を防ぐ
+  // 長い語から順に変換（FURIGANA配列は長い語が先頭）
+  const preserved = [];
+  let result = text.replace(/<ruby>[\s\S]*?<\/ruby>/g, m => {
+    preserved.push(m);
+    return '\x00' + (preserved.length - 1) + '\x00';
   });
-  return result;
+  FURIGANA.forEach(([word, reading]) => {
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    result = result.replace(regex, () => {
+      preserved.push(`<ruby>${word}<rt>${reading}</rt></ruby>`);
+      return '\x00' + (preserved.length - 1) + '\x00';
+    });
+  });
+  return result.replace(/\x00(\d+)\x00/g, (_, i) => preserved[parseInt(i)]);
 }
 
 function init(){
